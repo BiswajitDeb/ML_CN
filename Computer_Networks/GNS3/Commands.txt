@@ -1,0 +1,39 @@
+Router ==>
+
+sh run
+conf
+R1(config)#interface fastEthernet 0/0
+R1(config-if)#ip address 192.168.0.1 255.255.255.0
+R1(config-if)#no shut
+R1(config-if)#
+R1(config-if)#exit
+R1(config)#exit
+
+R1#sh ip interface brief
+
+R1#ping 192.168.0.100
+
+R1#ping 192.168.0.200
+
+
+PC1 ==>
+
+
+PC1> ip 192.168.0.100 255.255.255.0 192.168.0.1
+PC1> sh ip
+PC1> save
+
+PC1> ping 192.168.0.200
+PC1> ping 192.168.0.100
+PC1> ping 192.168.0.200
+
+
+PC2 ==>
+
+PC2> ip 192.168.0.200 255.255.255.0 192.168.0.1
+PC2> sh ip
+PC2> save
+PC2> ping 192.168.0.100
+PC2> ping 192.168.0.200
+
+
