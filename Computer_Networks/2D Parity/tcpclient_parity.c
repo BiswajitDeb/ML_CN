@@ -10,7 +10,7 @@
 
 #define MAX_MSG 100
 #define TOT_BYTE 5
-#define BITS 8
+#define BITS 9
 
 void parity_generator(char data[], char result[]){
 	int k =0, l =0;
@@ -78,23 +78,14 @@ int main(int argc , char *argv[]){
 	connect(sd,(struct sockaddr *) &servAddr , sizeof(servAddr));
 	printf("connected to server successfully\n");
 
-
-	do {
-		printf("Enter string to send to server : ");
-		scanf("%s", line);
-		char result[TOT_BYTE*BITS];
-		
-		parity_generator(line, result);
-		
-		if(strcmp(line,"quit")==0){
-			send(sd , line , strlen(line)+1 , 0);
-			printf("data sent (%s) \n", line);
-		}
-		else{
-			send(sd , result , strlen(result)+1 , 0);
-			printf("data sent (%s) \n", result);
-		}
-	}while(strcmp(line , "quit"));
+	printf("Enter string to send to server : ");
+	scanf("%s", line);
+	char result[TOT_BYTE*BITS];
+	
+	parity_generator(line, result);
+	
+	send(sd , result , strlen(result)+1 , 0);
+	printf("data sent (%s) \n", result);
 
 
 	printf("closing connection with the server \n");

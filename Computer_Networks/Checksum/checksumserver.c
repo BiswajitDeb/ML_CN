@@ -2,54 +2,77 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include  <arpa/inet.h>
+#include <arpa/inet.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdbool.h>
 
-#define MAX_MSG 100
-#define TOT_BYTE 5
-#define BITS 9
 
-bool parity_checker(char data[]){
-	int k =0, l =0;
-	char par[TOT_BYTE][BITS];
-	for(int i = 0; i<TOT_BYTE-1; i++){
-		int count = 0;
-		for(int j = 0; j<BITS; j++){
-			if(j == BITS - 1){
-				par[i][j]=(count%2==0)?'0':'1';
-				if(par[i][j] != data[k])
-					return false;
-				k++;
-				continue;
-			}	
-			par[i][j] = data[k];
-			if(data[k] == '1')
-				count++;
-			k++;
+#define MAX_MSG 24
+
+void carrysum(char* result){
+	int carry = 1;
+	if(result[7] == '0')
+		result[7] = '1';
+	else{
+		for(int i = 7; i >= 0; i--){
+			result[i] = result[i]+carry;
+			if(result[i] == '2')
+				carry = 1;
+			else
+				carry = 0;
+			result[i] = (result[i]-'0')%2+'0';
 		}
+		if(carry)
+			carrysum(result);
 	}
-		
-	for(int i = 0; i<BITS; i++){
-		int count = 0;
-		for(int j = 0; j<TOT_BYTE; j++){
-			if(j == TOT_BYTE - 1){
-				par[j][i]=(count%2==0)?'0':'1';
-				if(par[j][i] != data[k])
-					return false;
-				k++;
-				continue;
-			}
-				
-			if(par[j][i] == '1')
-				count++;
-		}
+}
+void compliment(char* result){
+	for(int i= 0; i< 7; i++){
+		if(result[i]=='1')
+			result[i] = '0';
+		else
+			result[i] = '1';
 	}
-	return true;
 }
 
+void checksum_check(char* line){
+	char sum[8];
+	int carry = 0;
+	for(int i = 7, j = 15, k = 7; i >= 0; i--,j--, k--){
+		sum[k] = (line[i]-'0') + (line[j]-'0')+carry+'0';
+		if(sum[k]-'0' >= 2)
+			carry = 1;
+		else
+			carry = 0;
+		sum[k] = (sum[k]-'0')%2+'0';
+	}
+	if(carry == 1)
+		carrysum(sum);
+	carry = 0;
+	for(int j = 23, k = 7; k >= 0; j--, k--){
+		sum[k] = (line[j]-'0') + (sum[k]-'0')+carry+'0';
+		if(sum[k]-'0' >= 2)
+			carry = 1;
+		else
+			carry = 0;
+		sum[k] = (sum[k]-'0')%2+'0';
+	}
+	if(carry == 1)
+		carrysum(sum);
+	int flag=1;
+	for(int i = 0; i <8; i++){
+		if(sum[i]=='0')
+		{
+			flag = 0;
+			break;
+		}
+	}
+	if(flag)
+		printf("No error found\n");
+	else
+		printf("Error found\n");
+}
 int main(int argc , char *argv[]){
 	int sd , newSd , cliLen , n;
 	struct sockaddr_in servAddr , cliAddr;
@@ -84,17 +107,12 @@ int main(int argc , char *argv[]){
 		/* wait for client connection */
 		cliLen = sizeof(cliAddr);
 		newSd = accept(sd,(struct sockaddr *)&cliAddr,&cliLen);
-		printf("%d" , newSd);
 		printf("received connection from host[IP %s,TCP port %d]\n",inet_ntoa(cliAddr.sin_addr), ntohs(cliAddr.sin_port));
 		memset(line, 0,MAX_MSG);
 		n=recv(newSd, line, MAX_MSG,0);
-		line[n]='\n';
 		printf("recieved from host [IP %s,TCP port %d]: %s\n",
 				inet_ntoa(cliAddr.sin_addr), ntohs(cliAddr.sin_port),line);
-		if(parity_checker(line))
-			printf("No error found\n");
-		else
-			printf("Parity bit error found\n");			
+		checksum_check(line);
 		printf("closing connection with host[IP %s,TCP port %d]\n",inet_ntoa(cliAddr.sin_addr), ntohs(cliAddr.sin_port));
 		close(newSd);
 			
